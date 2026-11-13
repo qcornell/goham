@@ -1,0 +1,37 @@
+# Keeps the GO HAM! worldwide leaderboard awake.
+#
+# The leaderboard database is on Supabase's free plan, which pauses a project after about a week with too
+# little activity (that is what took the leaderboard offline on 28 Aug 2026). This asks the database one tiny
+# question three times a day.
+#
+# The address and key below are the public ones that are already inside the game. They can read the
+# leaderboard and add scores, nothing more.
+#
+# Where this goes: in the "goham" repository on github.com, as the file  .github/workflows/keepalive.yml
+#
+# Note: GitHub switches scheduled jobs off after 60 days without any change to the repository. It emails
+# you first; press "Enable workflow" on the Actions tab to switch it back on.
+name: Keep leaderboard awake
+
+on:
+  schedule:
+    - cron: "17 3,11,19 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    env:
+      BOARD_URL: https://tfyalucttalsstntpuwt.supabase.co
+      BOARD_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRmeWFsdWN0dGFsc3N0bnRwdXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MDMxMzEsImV4cCI6MjA5NTM3OTEzMX0.U3rTN_gKghkRF7tVvnOZqWq0kqC-tudOukTEFCjEiRU
+    steps:
+      - name: Ask the leaderboard for one row
+        run: |
+          CODE=$(curl -sS -o /tmp/out.txt -w "%{http_code}" -H "apikey: $BOARD_KEY" -H "Authorization: Bearer $BOARD_KEY" "$BOARD_URL/rest/v1/scores?select=pid&limit=1" || true)
+          echo "Leaderboard answered with HTTP $CODE"
+          if [ "$CODE" != "200" ]; then
+            echo "The leaderboard did not answer normally. If this keeps happening, open supabase.com, pick the project and press Resume."
+            exit 1
+          fi
